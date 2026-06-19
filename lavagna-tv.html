@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lavagna · Casa</title>
+<style>
+:root{
+  --ink:#1C1B19;
+  --paper:#F6F2E9;
+  --terra:#B6502E;
+  --moss:#4F5D3A;
+  --gold:#C9A24B;
+  --ink-soft:#5A5650;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;width:100%;height:100%;}
+body{
+  background:var(--ink);
+  color:var(--paper);
+  font-family:-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+  width:100vw; height:100vh;
+  overflow:hidden;
+}
+
+/* ---- Password gate ---- */
+#gate{
+  position:fixed; inset:0; background:var(--ink);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  z-index:1000;
+}
+#gate h1{font-family:Georgia,serif; font-size:5vw; margin-bottom:1vw;}
+#gate p{color:#B8B3A8; font-size:2.2vw; margin-bottom:3vw;}
+#gate input{
+  font-size:3.5vw; padding:1.5vw 2.5vw; border-radius:1.2vw; border:2px solid #44403A;
+  background:#252320; color:var(--paper); text-align:center; width:32vw;
+  letter-spacing:0.5vw;
+}
+#gate input:focus{outline:none; border-color:var(--gold);}
+#gateErr{color:var(--terra); margin-top:1.5vw; font-size:1.8vw; height:2.5vw;}
+
+/* ---- Main layout ---- */
+#board{
+  width:100vw; height:100vh;
+  padding:3vh 4vw;
+  display:none; flex-direction:column;
+}
+#board.show{display:flex;}
+
+.header{
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:2vh;
+  border-bottom:2px solid #3A372F;
+  padding-bottom:1.5vh;
+  flex-shrink:0;
+}
+.h-left{display:flex; align-items:baseline; gap:1.5vw;}
+.h-title{font-family:Georgia,serif; font-size:6.5vw; font-weight:700; letter-spacing:-0.01em; line-height:1;}
+.h-sub{font-size:2vw; color:#9C9688; font-weight:600;}
+.h-clock{font-size:4.5vw; font-weight:700; font-variant-numeric:tabular-nums; color:#C9A24B; line-height:1;}
+.h-date{font-size:1.8vw; color:#9C9688; text-align:right; margin-top:0.3vw; text-transform:capitalize;}
+
+.body-grid{
+  flex:1; display:grid; grid-template-columns:1fr 1fr 1fr; gap:2vw;
+  min-height:0;
+}
+.col{display:flex; flex-direction:column; min-height:0;}
+.col-title{
+  font-size:1.8vw; font-weight:800; text-transform:uppercase; letter-spacing:0.08em;
+  color:#C9A24B; margin-bottom:1.2vh; display:flex; align-items:center; gap:0.8vw;
+  flex-shrink:0;
+}
+.col-title .n{
+  background:#33302A; color:var(--paper); font-size:1.4vw; padding:0.2vw 0.8vw; border-radius:99px;
+}
+
+/* Todo list */
+.tlist{flex:1; overflow:hidden; display:flex; flex-direction:column; gap:0.8vh;}
+.titem{
+  display:flex; align-items:flex-start; gap:1.2vw;
+  background:#252320; border-radius:1vw; padding:1.4vh 1.4vw;
+  border-left:0.35vw solid var(--terra);
+  flex-shrink:0;
+}
+.titem .tcheck{
+  width:2.2vw; height:2.2vw; border-radius:50%; border:2px solid #5A564A;
+  min-width:2.2vw; margin-top:0.2vh;
+}
+.tbody{flex:1; min-width:0;}
+.ttext{font-size:2vw; font-weight:700; line-height:1.25; word-break:break-word;}
+.tmeta{display:flex; align-items:center; gap:0.8vw; margin-top:0.4vh; flex-wrap:wrap;}
+.twho{font-size:1.3vw; color:#9C9688; font-weight:600;}
+.twho b{color:#C9B99A;}
+.tdate{font-size:1.2vw; font-weight:700; color:var(--gold); background:#2E2A22; padding:0.1vh 0.6vw; border-radius:99px;}
+.tempty{color:#736F62; font-size:1.6vw; font-style:italic; padding:1.5vh 0;}
+
+/* Week view */
+.week{flex:1; display:flex; flex-direction:column; gap:0.8vh; min-height:0;}
+.wday{
+  background:#252320; border-radius:1vw; padding:1.2vh 1.5vw;
+  display:flex; align-items:center; gap:1.5vw; flex:1; min-height:0;
+}
+.wday.today{background:#3A2D20; border:2px solid var(--gold);}
+.wd-label{min-width:12vw; flex-shrink:0;}
+.wd-name{font-size:1.9vw; font-weight:800; text-transform:capitalize;}
+.wd-num{font-size:1.3vw; color:#9C9688; font-weight:600;}
+.wd-items{flex:1; display:flex; flex-direction:column; gap:0.4vh; justify-content:center;}
+.wd-item{font-size:1.7vw; font-weight:600; display:flex; align-items:center; gap:0.6vw; line-height:1.2;}
+.wd-item .d{width:0.6vw; height:0.6vw; border-radius:50%; background:var(--terra); min-width:0.6vw; flex-shrink:0;}
+.wd-none{font-size:1.4vw; color:#6B6759; font-style:italic;}
+
+/* Events strip */
+.events-strip{margin-top:1.5vh; display:flex; gap:1.5vw; overflow:hidden; flex-shrink:0;}
+.evcard{
+  background:#252320; border-radius:1.2vw; padding:1.5vh 1.8vw; min-width:18vw;
+  border-top:0.3vw solid var(--gold);
+}
+.ev-date{font-size:1.4vw; color:var(--gold); font-weight:800; text-transform:uppercase; letter-spacing:0.04em;}
+.ev-title{font-size:2vw; font-weight:700; margin-top:0.4vh;}
+.ev-time{font-size:1.3vw; color:#9C9688; margin-top:0.3vh; font-weight:600;}
+
+.footer-sync{
+  position:fixed; bottom:1vh; right:2vw; font-size:1.1vw; color:#5A564A; font-weight:600;
+}
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <h1>🌾 Lavagna</h1>
+  <p id="gateLabel">Inserisci la password</p>
+  <input type="password" id="gateInput" autofocus inputmode="numeric">
+  <div id="gateErr"></div>
+</div>
+
+<div id="board">
+  <div class="header">
+    <div class="h-left">
+      <div class="h-title" id="boardTitle">Casa</div>
+      <div class="h-sub" id="boardSub">lavagna di famiglia</div>
+    </div>
+    <div>
+      <div class="h-clock" id="clock">--:--</div>
+      <div class="h-date" id="dateNow"></div>
+    </div>
+  </div>
+
+  <div class="body-grid">
+    <div class="col">
+      <div class="col-title">Da fare <span class="n" id="todoCount1">0</span></div>
+      <div class="tlist" id="todoList1"></div>
+    </div>
+    <div class="col">
+      <div class="col-title">In programma</div>
+      <div class="tlist" id="todoList2"></div>
+    </div>
+    <div class="col">
+      <div class="col-title">Assegnati</div>
+      <div class="tlist" id="todoList3"></div>
+    </div>
+  </div>
+
+  <div class="footer-sync" id="footerSync"></div>
+</div>
+
+<script>
+/* ============================================================
+   LAVAGNA TV — Sola lettura, kiosk mode (Fire TV / Smart TV)
+   URL: lavagna-tv.html?vista=casa   oppure   ?vista=generale
+   ============================================================ */
+
+const JSONBIN_ID = "6a352822da38895dfedd1656";
+const JSONBIN_KEY = "$2a$10$g55yrBqDxV/w0kQ/Tzj0r.bZCbqHP7YgZxdKelXFW61V..K0zOFwO";
+const JSONBIN_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_ID}`;
+
+const BOARD_PASSWORD = "1234"; // <-- cambia questa password semplice condivisa in famiglia
+
+const params = new URLSearchParams(window.location.search);
+const vista = params.get('vista') === 'generale' ? 'generale' : 'casa';
+
+const TITOLI = {
+  casa: { title: 'Casa', sub: 'lavagna di famiglia' },
+  generale: { title: 'Generale', sub: 'pollaio · campi · giardino · animali' }
+};
+
+/* ---------- Password gate ---------- */
+function checkGate(){
+  const saved = sessionStorage.getItem('lavagna_tv_auth');
+  if(saved === 'ok'){ showBoard(); return; }
+}
+document.getElementById('gateInput').addEventListener('keyup', (e) => {
+  if(e.key === 'Enter'){
+    const val = document.getElementById('gateInput').value;
+    if(val === BOARD_PASSWORD){
+      sessionStorage.setItem('lavagna_tv_auth', 'ok');
+      showBoard();
+    } else {
+      document.getElementById('gateErr').textContent = 'Password errata';
+      document.getElementById('gateInput').value = '';
+    }
+  }
+});
+function showBoard(){
+  document.getElementById('gate').style.display = 'none';
+  document.getElementById('board').classList.add('show');
+  document.getElementById('boardTitle').textContent = TITOLI[vista].title;
+  document.getElementById('boardSub').textContent = TITOLI[vista].sub;
+  startClock();
+  loadAndRender();
+  setInterval(loadAndRender, 30000); // refresh ogni 30s
+}
+
+/* ---------- Clock ---------- */
+function startClock(){
+  function tick(){
+    const d = new Date();
+    document.getElementById('clock').textContent =
+      d.toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'});
+    document.getElementById('dateNow').textContent =
+      d.toLocaleDateString('it-IT', {weekday:'long', day:'numeric', month:'long'});
+  }
+  tick();
+  setInterval(tick, 10000);
+}
+
+/* ---------- Data load ---------- */
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+function escapeHtml(s){
+  const d = document.createElement('div');
+  d.textContent = s || '';
+  return d.innerHTML;
+}
+
+async function loadAndRender(){
+  try{
+    const res = await fetch(`${JSONBIN_URL}/latest`, { headers: { 'X-Master-Key': JSONBIN_KEY } });
+    if(!res.ok) throw new Error('http ' + res.status);
+    const json = await res.json();
+    const data = json.record || {};
+    renderTodos(data.todos || []);
+    document.getElementById('footerSync').textContent =
+      'Aggiornato alle ' + new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
+  }catch(err){
+    document.getElementById('footerSync').textContent = 'Connessione assente — riprovo...';
+    console.warn('Sync fallito', err);
+  }
+}
+
+function todoHtml(t){
+  const assegnati = (t.assegnatoA||[]);
+  const dest = assegnati.length ? assegnati.join(', ') : '';
+  const dataBadge = t.dataPrevista ? `<span class="tdate">${fmtDataBreve(t.dataPrevista)}</span>` : '';
+  return `
+    <div class="titem">
+      <div class="tcheck"></div>
+      <div class="tbody">
+        <div class="ttext">${escapeHtml(t.testo)}</div>
+        <div class="tmeta">
+          ${t.creatoDa ? `<span class="twho">da <b>${escapeHtml(t.creatoDa)}</b></span>` : ''}
+          ${dest ? `<span class="twho">→ <b>${escapeHtml(dest)}</b></span>` : ''}
+          ${dataBadge}
+        </div>
+      </div>
+    </div>`;
+}
+
+function fmtDataBreve(iso){
+  if(!iso) return '';
+  const [,m,d]=iso.split('-');
+  return `${parseInt(d)} ${['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'][parseInt(m)-1]}`;
+}
+
+function renderTodos(todos){
+  const tutti = todos.filter(t => !t.fatto);
+
+  /* Colonna 1: senza data e senza assegnazione (lavori generici) */
+  const col1 = tutti.filter(t => !t.dataPrevista && !(t.assegnatoA||[]).length).slice(0,6);
+
+  /* Colonna 2: con data (in programma) */
+  const col2 = tutti.filter(t => t.dataPrevista)
+    .sort((a,b) => a.dataPrevista.localeCompare(b.dataPrevista)).slice(0,6);
+
+  /* Colonna 3: assegnati a qualcuno */
+  const col3 = tutti.filter(t => (t.assegnatoA||[]).length > 0).slice(0,6);
+
+  const count = tutti.length;
+  document.getElementById('todoCount1').textContent = count;
+
+  const empty = `<div class="tempty">Niente ✓</div>`;
+  document.getElementById('todoList1').innerHTML = col1.length ? col1.map(todoHtml).join('') : empty;
+  document.getElementById('todoList2').innerHTML = col2.length ? col2.map(todoHtml).join('') : empty;
+  document.getElementById('todoList3').innerHTML = col3.length ? col3.map(todoHtml).join('') : empty;
+}
+
+
+checkGate();
+</script>
+</body>
+</html>
